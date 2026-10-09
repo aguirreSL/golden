@@ -54,8 +54,28 @@ jobs:
         with:
           python-version: '3.12'
 
+      # Zenodo is slow and cuts transfers: download once, then every job takes the cache
+      - name: Sound sets from the cache
+        id: sounds
+        uses: actions/cache/restore@v4
+        with:
+          path: extras/sound_files
+          key: sounds-0643a34e-2dd2b200
+          enableCrossOsArchive: true
+
       - name: Sound sets (Zenodo 7933206, NASA AIAA-2020-2582)
+        if: steps.sounds.outputs.cache-hit != 'true'
         run: python tools/fetch_sounds.py extras/sound_files
+
+      # saved right away: a job whose files differ ends in failure, and would not save it later
+      - name: Sound sets to the cache
+        if: steps.sounds.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: extras/sound_files
+          key: sounds-0643a34e-2dd2b200
+          enableCrossOsArchive: true
 
       - uses: matlab-actions/setup-matlab@v2
         with:
