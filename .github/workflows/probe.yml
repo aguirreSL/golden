@@ -42,6 +42,22 @@ jobs:
         with:
           startup-options: -singleCompThread
           command: addpath('tools/matlab'); builtin_probe('probe-b.json')
+      - name: MKL fixed to its compatible code path
+        if: runner.os != 'macOS'
+        uses: matlab-actions/run-command@v2
+        env:
+          MKL_CBWR: COMPATIBLE
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); builtin_probe('probe-c.json')
+      - name: MKL fixed to AVX2
+        if: runner.os != 'macOS'
+        uses: matlab-actions/run-command@v2
+        env:
+          MKL_CBWR: AVX2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); builtin_probe('probe-d.json')
       - uses: actions/upload-artifact@v4
         with:
           name: probe-${{ matrix.os }}-${{ matrix.rep }}

@@ -30,7 +30,20 @@ b = x(1:4097) / 100;
 H.filter_fir_4097 = h(filter(b, 1, x));
 H.filter_fir_9 = h(filter(b(1:9), 1, x));
 H.filter_iir = h(filter([0.2 0.3 0.2], [1 -0.5 0.25], x));
+% the operations of the inputs and stages that differed between machines
+[bb, ab] = butter(2, [3000 5000]/24000, 'bandpass');
+H.butter = h([bb ab]);
+H.filter_butter = h(filter(bb, ab, x));
+y = circshift(x, 7);
+for n = [47 256 1024 88200]
+    H.(sprintf('cov_%d', n)) = h(cov(x(1:n), y(1:n)));
+    X = [x(1:n) y(1:n)];
+    H.(sprintf('xtx_%d', n)) = h(X' * X);
+    H.(sprintf('dot_%d', n)) = h(x(1:n)' * y(1:n));
+end
+H.mean_sq = h(mean(x.^2));
 M = machine_();
+M.mkl_cbwr = getenv('MKL_CBWR');
 M.hashes = H;
 fid = fopen(out, 'w');
 fwrite(fid, uint8(jsonencode(M, 'PrettyPrint', true)));
