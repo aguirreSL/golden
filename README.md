@@ -17,9 +17,10 @@ Two sets are recorded:
 
 ## Run
 
-Actions, workflow `goldens`, Run workflow. Each job (set and operating system) uploads an
-artifact with `report.md`, `report.json`, the `manifest.json` of the recording and every
-file that is not bit-identical to the Mac recording.
+Actions, workflow `goldens`, Run workflow. Each job (set and operating system) uploads two
+artifacts: `golden-<set>-<os>`, the whole recorded tree of that platform as one tar file, and
+`<set>-<os>`, the comparison with the Mac recording (`report.md`, `report.json`, the
+`manifest.json` of the recording and every file that is not bit-identical).
 
 ## Inputs
 

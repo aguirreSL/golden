@@ -125,3 +125,16 @@ jobs:
           name: ${{ matrix.set }}-${{ matrix.os }}
           path: report
           if-no-files-found: warn
+
+      # the golden of this platform: the whole recorded tree, one tar file
+      - name: Golden as one file
+        if: always()
+        run: tar -cf golden-${{ matrix.set }}.tar -C out ${{ matrix.set }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: golden-${{ matrix.set }}-${{ matrix.os }}
+          path: golden-${{ matrix.set }}.tar
+          compression-level: 6
+          if-no-files-found: warn
