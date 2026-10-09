@@ -3,7 +3,15 @@ name: goldens
 # Records the SQAT goldens with MATLAB on one computational thread and compares every file,
 # by SHA-256, with the goldens recorded on macOS arm64 (reference/). Started by hand.
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: Runners, as a JSON list
+        default: '["ubuntu-24.04", "windows-2025", "macos-26"]'
+      set:
+        description: Sets, as a JSON list
+        default: '["data", "level3v"]'
 
 permissions:
   contents: read
@@ -14,8 +22,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2025, macos-26]
-        set: [data, level3v]
+        os: ${{ fromJSON(inputs.os) }}
+        set: ${{ fromJSON(inputs.set) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 355
     env:
