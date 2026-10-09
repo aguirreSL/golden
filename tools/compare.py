@@ -4,7 +4,9 @@
 
 Writes <out>/report.json and <out>/report.md, and copies every file that differs or is
 not in the reference to <out>/files/. Provenance files (manifest.json, SHA256SUMS, .count)
-are not compared. Exit status 1 when anything differs.
+are not compared. In a WAV file the time stamp of the PEAK chunk (the time the file was
+written, libsndfile) is set to zero before hashing; every other byte counts.
+Exit status 1 when anything differs.
 """
 import gzip
 import hashlib
@@ -16,6 +18,15 @@ from pathlib import Path
 SKIP = {"manifest.json", "SHA256SUMS"}
 
 
+def digest(p):
+    b = p.read_bytes()
+    if p.suffix == ".wav":
+        i = b.find(b"PEAK", 12, 512)
+        if i >= 0:  # PEAK: id, size, version, then the 4-byte write time
+            b = b[:i + 12] + bytes(4) + b[i + 16:]
+    return hashlib.sha256(b).hexdigest()
+
+
 def main():
     ref_path, tree, out = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
     opener = gzip.open if ref_path.suffix == ".gz" else open
@@ -25,7 +36,7 @@ def main():
     for p in sorted(tree.rglob("*")):
         rel = p.relative_to(tree).as_posix()
         if p.is_file() and rel not in SKIP and p.name != ".count":
-            got[rel] = hashlib.sha256(p.read_bytes()).hexdigest()
+            got[rel] = digest(p)
     same = [p for p in ref if got.get(p) == ref[p]]
     differ = sorted(p for p in ref if p in got and got[p] != ref[p])
     missing = sorted(p for p in ref if p not in got)
