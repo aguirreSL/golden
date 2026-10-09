@@ -22,16 +22,20 @@ SETS = [
 ]
 
 
-def fetch(url, path):
-    for attempt in range(5):  # Zenodo answers 504 now and then
+def fetch(url, sha, path):
+    # Zenodo answers 504 now and then, or ends a slow transfer early: retry until the hash matches
+    for attempt in range(8):
         try:
             with urllib.request.urlopen(url, timeout=600) as r, open(path, "wb") as f:
                 while chunk := r.read(1 << 20):
                     f.write(chunk)
-            return
+            got = hashlib.sha256(path.read_bytes()).hexdigest()
+            if got == sha:
+                return
+            print(f"retry {attempt + 1}: {path.stat().st_size} bytes, sha256 {got}", flush=True)
         except OSError as e:
             print(f"retry {attempt + 1}: {e}", flush=True)
-            time.sleep(30)
+        time.sleep(30)
     sys.exit(f"download failed: {url}")
 
 
@@ -40,10 +44,7 @@ def main():
     dest.mkdir(parents=True, exist_ok=True)
     for url, sha, sub in SETS:
         z = dest / "archive.zip"
-        fetch(url, z)
-        got = hashlib.sha256(z.read_bytes()).hexdigest()
-        if got != sha:
-            sys.exit(f"{url}: sha256 {got}, expected {sha}")
+        fetch(url, sha, z)
         with zipfile.ZipFile(z) as a:
             a.extractall(dest / sub)
         z.unlink()
