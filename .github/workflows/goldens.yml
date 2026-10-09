@@ -11,7 +11,7 @@ on:
         default: '["ubuntu-24.04", "windows-2025", "macos-26"]'
       set:
         description: Sets, as a JSON list
-        default: '["data", "level3v"]'
+        default: '["data", "level3v", "level3v-internal", "level3v-988a3a9", "gui"]'
 
 permissions:
   contents: read
@@ -49,6 +49,44 @@ jobs:
           repository: ggrecow/SQAT
           ref: 4a9919800c69642fa3c5899838612094ebc7f1f4
           path: sqat
+
+      - name: SQAT at 988a3a9
+        if: matrix.set == 'level3v-988a3a9'
+        uses: actions/checkout@v4
+        with:
+          repository: ggrecow/SQAT
+          ref: 988a3a9311e0accedeb97b37e7f82ebe783074f6
+          path: sqat988
+
+      # gui: the fork of PR #84 at the four commits its goldens come from
+      - name: Fork at b312b58
+        if: matrix.set == 'gui'
+        uses: actions/checkout@v4
+        with:
+          repository: aguirreSL/SQAT
+          ref: b312b589a3fc1b5869b8cc1ff25079ef48e00e23
+          path: fork_b312b58
+      - name: Fork at dbf721a
+        if: matrix.set == 'gui'
+        uses: actions/checkout@v4
+        with:
+          repository: aguirreSL/SQAT
+          ref: dbf721aedc7130dcb291736c7ad157d379eeb9c3
+          path: fork_dbf721a
+      - name: Fork at 850437f
+        if: matrix.set == 'gui'
+        uses: actions/checkout@v4
+        with:
+          repository: aguirreSL/SQAT
+          ref: 850437fc73de2ae2c07558fe8e5f0e6ef81e6c56
+          path: fork_850437f
+      - name: Fork at 2409ef5
+        if: matrix.set == 'gui'
+        uses: actions/checkout@v4
+        with:
+          repository: aguirreSL/SQAT
+          ref: 2409ef508aabfddc59e6fa6bc6bcdd2457698aa9
+          path: fork_2409ef5
 
       - uses: actions/setup-python@v5
         with:
@@ -108,6 +146,64 @@ jobs:
         with:
           startup-options: -singleCompThread
           command: addpath('matlab'); export_validation_goldens('sqat_root', getenv('SQAT_ROOT'), 'sqat_sha', '4a99198', 'sounds_root', fullfile(getenv('SQAT_EXTRAS_ROOT'), 'sound_files'), 'out_dir', fullfile(getenv('OUT'), 'level3v'))
+
+      - name: level3v-internal, the local functions of Tonality_Aures1985
+        if: matrix.set == 'level3v-internal'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('matlab'); export_validation_goldens('sqat_root', getenv('SQAT_ROOT'), 'sqat_sha', '4a99198', 'sounds_root', fullfile(getenv('SQAT_EXTRAS_ROOT'), 'sound_files'), 'out_dir', fullfile(getenv('OUT'), 'level3v-internal'), 'filter', 'validation_extraction_and_level_excess', 'internal', true)
+
+      - name: level3v-988a3a9, every call of the validation scripts of SQAT 988a3a9
+        if: matrix.set == 'level3v-988a3a9'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('matlab'); export_validation_goldens('sqat_root', fullfile(getenv('GITHUB_WORKSPACE'), 'sqat988'), 'sqat_sha', '988a3a9', 'sounds_root', fullfile(getenv('SQAT_EXTRAS_ROOT'), 'sound_files'), 'out_dir', fullfile(getenv('OUT'), 'level3v-988a3a9'))
+
+      # gui: the fixtures of the GUI port, FIR filtering and two probes; one session per exporter
+      - name: gui, G1 (fork b312b58)
+        if: matrix.set == 'gui'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); export_gui_goldens('fork_root', fullfile(getenv('GITHUB_WORKSPACE'), 'fork_b312b58'), 'baseline_root', getenv('SQAT_ROOT'), 'out_dir', fullfile(getenv('OUT'), 'gui', 'crates', 'sqat-gui', 'tests', 'fixtures'))
+      - name: gui, 9d (fork dbf721a)
+        if: matrix.set == 'gui'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); export_gui_goldens_9d('fork_root', fullfile(getenv('GITHUB_WORKSPACE'), 'fork_dbf721a'), 'out_dir', fullfile(getenv('OUT'), 'gui', 'crates', 'sqat-gui', 'tests', 'fixtures'))
+      - name: gui, 9e (fork 850437f)
+        if: matrix.set == 'gui'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); export_gui_goldens_9e('fork_root', fullfile(getenv('GITHUB_WORKSPACE'), 'fork_850437f'), 'out_dir', fullfile(getenv('OUT'), 'gui', 'crates', 'sqat-gui', 'tests', 'fixtures'))
+      - name: gui, 9f (fork 2409ef5)
+        if: matrix.set == 'gui'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); export_gui_goldens_9f(fullfile(getenv('GITHUB_WORKSPACE'), 'fork_2409ef5'), '2409ef508aabfddc59e6fa6bc6bcdd2457698aa9', fullfile(getenv('OUT'), 'gui', 'crates', 'sqat-gui', 'tests', 'fixtures'))
+      - name: gui, writetable probe
+        if: matrix.set == 'gui'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); export_writetable_probe(fullfile(getenv('OUT'), 'gui', 'crates', 'sqat-gui', 'tests', 'fixtures', 'g31_writetable'))
+      - name: gui, unique probe
+        if: matrix.set == 'gui'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); export_unique_probe(fullfile(getenv('OUT'), 'gui', 'crates', 'sqat-gui', 'tests', 'fixtures', 'g36_unique.json'))
+      - name: gui, filter_conv
+        if: matrix.set == 'gui'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath(fullfile(pwd, 'tools', 'matlab')); cd(fullfile(getenv('OUT'), 'gui')); export_filter_conv(getenv('SQAT_ROOT'))
 
       - name: Compare with the Mac goldens
         if: always()

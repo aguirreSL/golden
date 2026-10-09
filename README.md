@@ -11,9 +11,15 @@ Two sets are recorded:
   (`tools/matlab/export_goldens.m`, `full` mode, no decimation).
 - `level3v`: every call of the SQAT validation scripts, with inputs, outputs and every
   warning (`matlab/export_validation_goldens.m`).
+- `level3v-internal`: the calls to the local functions of `Tonality_Aures1985` in its
+  extraction and level excess validation.
+- `level3v-988a3a9`: every call of the validation scripts of SQAT at `988a3a9` (2023).
+- `gui`: the fixtures of the GUI of the SQAT fork of PR #84 (`aguirreSL/SQAT` at `b312b58`,
+  `dbf721a`, `850437f` and `2409ef5`), long FIR filtering (`filter`) and two probes of
+  `writetable` and `matlab.lang.makeUniqueStrings`. `g31_writetable/probe.json` and
+  `probe.xlsx` carry the time they were written.
 
-`reference/` holds the SHA-256 of every file of the Mac recording (7259 files in `data`,
-330471 in `level3v`).
+`reference/` holds the SHA-256 of every file of the Mac recording of each set.
 
 ## Run
 
