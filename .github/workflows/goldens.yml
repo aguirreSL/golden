@@ -1,0 +1,99 @@
+name: goldens
+
+# Records the SQAT goldens with MATLAB on one computational thread and compares every file,
+# by SHA-256, with the goldens recorded on macOS arm64 (reference/). Started by hand.
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    name: ${{ matrix.set }} on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-26]
+        set: [data, level3v]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 355
+    env:
+      SQAT_ROOT: ${{ github.workspace }}/sqat
+      SQAT_EXTRAS_ROOT: ${{ github.workspace }}/extras
+      OUT: ${{ github.workspace }}/out
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Keep line endings as committed
+        run: git config --global core.autocrlf false
+
+      - name: Free disk (Linux)
+        if: runner.os == 'Linux'
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - uses: actions/checkout@v4
+
+      - name: SQAT at the recorded sha
+        uses: actions/checkout@v4
+        with:
+          repository: ggrecow/SQAT
+          ref: 4a9919800c69642fa3c5899838612094ebc7f1f4
+          path: sqat
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Sound sets (Zenodo 7933206, NASA AIAA-2020-2582)
+        run: python tools/fetch_sounds.py extras/sound_files
+
+      - uses: matlab-actions/setup-matlab@v2
+        with:
+          release: R2026a
+          products: Signal_Processing_Toolbox Audio_Toolbox DSP_System_Toolbox Statistics_and_Machine_Learning_Toolbox
+
+      # data: the recipe of the Mac goldens, one MATLAB session per call
+      - name: data, all sections
+        if: matrix.set == 'data'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); export_goldens('sqat_root', getenv('SQAT_ROOT'), 'extras_root', getenv('SQAT_EXTRAS_ROOT'), 'out_dir', fullfile(getenv('OUT'), 'data'), 'full', true, 'skip_pass2', true, 'budget_mb', 100000)
+      - name: data, Tonality Aures 1985
+        if: matrix.set == 'data'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); export_goldens('sqat_root', getenv('SQAT_ROOT'), 'extras_root', getenv('SQAT_EXTRAS_ROOT'), 'out_dir', fullfile(getenv('OUT'), 'data'), 'full', true, 'skip_pass2', true, 'budget_mb', 100000, 'append', true, 'filter', 'tonality_aures1985')
+      - name: data, Terhardt clamp
+        if: matrix.set == 'data'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); zregen_clamp(fullfile(getenv('OUT'), 'data'), true)
+
+      - name: level3v, every call of the validation scripts
+        if: matrix.set == 'level3v'
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('matlab'); export_validation_goldens('sqat_root', getenv('SQAT_ROOT'), 'sqat_sha', '4a99198', 'sounds_root', fullfile(getenv('SQAT_EXTRAS_ROOT'), 'sound_files'), 'out_dir', fullfile(getenv('OUT'), 'level3v'))
+
+      - name: Compare with the Mac goldens
+        if: always()
+        run: |
+          df -h . || true
+          python tools/compare.py reference/${{ matrix.set }}.sha256.gz out/${{ matrix.set }} report
+
+      - name: Provenance
+        if: always()
+        run: cp out/${{ matrix.set }}/manifest.json report/ || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.set }}-${{ matrix.os }}
+          path: report
+          if-no-files-found: warn
