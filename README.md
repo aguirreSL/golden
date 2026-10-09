@@ -12,7 +12,7 @@ Two sets are recorded:
 - `level3v`: every call of the SQAT validation scripts, with inputs, outputs and every
   warning (`matlab/export_validation_goldens.m`).
 
-`reference/` holds the SHA-256 of every file of the Mac recording (7247 files in `data`,
+`reference/` holds the SHA-256 of every file of the Mac recording (7259 files in `data`,
 330471 in `level3v`).
 
 ## Run
