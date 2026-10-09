@@ -12,18 +12,25 @@ on:
       set:
         description: Sets, as a JSON list
         default: '["data", "level3v", "level3v-internal", "level3v-988a3a9", "gui"]'
+      repeat:
+        description: Jobs per runner and set (other machines), as a JSON list
+        default: '[1]'
+      keep_tree:
+        description: Upload the whole recorded tree (false for experiments)
+        default: 'true'
 
 permissions:
   contents: read
 
 jobs:
   record:
-    name: ${{ matrix.set }} on ${{ matrix.os }}
+    name: ${{ matrix.set }} on ${{ matrix.os }} (${{ matrix.rep }})
     strategy:
       fail-fast: false
       matrix:
         os: ${{ fromJSON(inputs.os) }}
         set: ${{ fromJSON(inputs.set) }}
+        rep: ${{ fromJSON(inputs.repeat) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 355
     env:
@@ -215,22 +222,29 @@ jobs:
         if: always()
         run: cp out/${{ matrix.set }}/manifest.json report/ || true
 
+      - name: Machine
+        if: always()
+        uses: matlab-actions/run-command@v2
+        with:
+          startup-options: -singleCompThread
+          command: addpath('tools/matlab'); builtin_probe(fullfile('report', 'machine.json'))
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{ matrix.set }}-${{ matrix.os }}
+          name: ${{ matrix.set }}-${{ matrix.os }}-${{ matrix.rep }}
           path: report
           if-no-files-found: warn
 
       # the golden of this platform: the whole recorded tree, one tar file
       - name: Golden as one file
-        if: always()
+        if: always() && inputs.keep_tree == 'true'
         run: tar -cf golden-${{ matrix.set }}.tar -C out ${{ matrix.set }}
 
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && inputs.keep_tree == 'true'
         with:
-          name: golden-${{ matrix.set }}-${{ matrix.os }}
+          name: golden-${{ matrix.set }}-${{ matrix.os }}-${{ matrix.rep }}
           path: golden-${{ matrix.set }}.tar
           compression-level: 6
           if-no-files-found: warn
