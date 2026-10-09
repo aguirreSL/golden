@@ -166,7 +166,13 @@ S = {}; for tq = [-1 0 0.5/48000 1/48000 1.5/48000 0.01 999/48000 1000/48000 1],
 il_write(fullfile(out, 'g6_player.json'), struct('weight', {W}, 'decimate', {D}, 'seek', {S}), false);
 
 il_g7(out);   % G7: spectrogram of the player window
-il_g8(out);   % G8: playback
+% G8: playback, which needs a sound output (the runners of GitHub Actions have none)
+try, nout = numel(audiodevinfo().output); catch, nout = 0; end
+if nout > 0
+    il_g8(out);
+else
+    fprintf('export_gui_goldens: no audio output device, G8 (playback) skipped\n');
+end
 il_g9(out);   % G9: spectral filter of the filter boxes
 v = ver('signal');
 prov = struct('fork_commit', sha, 'fork_branch', 'feat/sqat-gui', ...
